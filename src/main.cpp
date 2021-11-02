@@ -20,10 +20,10 @@ void setup() {
         Serial.println("Failed to Create UART_Task");
     }
     
-    // if (xTaskCreate(WIFI_Task, "WIFI_Task", 1024*8, NULL, tskIDLE_PRIORITY + 5, NULL) != pdTRUE)
-    // {
-    //     Serial.println("Failed to Create WIFI_Task");
-    // }
+    if (xTaskCreate(WIFI_Task, "WIFI_Task", 1024*8, NULL, tskIDLE_PRIORITY + 5, NULL) != pdTRUE)
+    {
+        Serial.println("Failed to Create WIFI_Task");
+    }
 
     if (xTaskCreate(CAN_TASK, "CAN_Task", 1024*4, NULL, tskIDLE_PRIORITY + 6, NULL) != pdTRUE)
     {

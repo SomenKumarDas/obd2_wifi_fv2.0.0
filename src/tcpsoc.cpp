@@ -60,7 +60,7 @@ void WIFI_Task(void *pvParameters)
           {
             len = WIFI_Client.available();
             len = (len > 0) ? len : 0;
-            if(IsTimerElapsed(frameTimeoutTmr))
+            if (IsTimerElapsed(frameTimeoutTmr))
             {
               // Serial.print("<FRAME TIME OUT> ");
               // Serial.printf("Read: [%u] Exp: [%u]\r\n", len, frameLen);
@@ -73,7 +73,7 @@ void WIFI_Task(void *pvParameters)
           // {
           //   Serial.println("INVALID FRAME LEN");
           //   Serial.printf("Read: [%u] Exp: [%u]\r\n", len, frameLen);
-          // } 
+          // }
 
           idx += WIFI_Client.read(&WIFI_RxBuff[idx], len);
 
@@ -170,7 +170,6 @@ void WIFI_Init(void)
   bool staConnected = false;
 
   esp_wifi_set_ps(WIFI_PS_NONE);
-
   WIFI_SemTCP_SocComplete = xSemaphoreCreateBinary();
 
   if ((WIFI_SemTCP_SocComplete == NULL))
@@ -187,12 +186,10 @@ void WIFI_Init(void)
   ESP_LOGI("WIFI", "MAC: %s", WiFi.macAddress().c_str());
   WiFi.macAddress((uint8_t *)mac);
   sprintf(WIFI_AP_SSID, "OBD2-%02X%02X", mac[4], mac[5]);
-  Serial.printf("INFO: SSID <%s>\r\n", WIFI_AP_SSID);
+  Serial.printf("INFO: AP SSID <%s>\r\n", WIFI_AP_SSID);
 
   Serial.printf("INFO: USER SSID <%s>\r\n", preferences.getString("stSSID[1]").c_str());
   Serial.printf("INFO: DEFAULT SSID <%s>\r\n", preferences.getString("stSSID[0]").c_str());
-
-  WiFi.macAddress((uint8_t *)mac);
 
   if ((preferences.getString("stSSID[1]") != "") && (strnlen(preferences.getString("stSSID[1]").c_str(), 50) < 50))
   {
@@ -241,6 +238,7 @@ void WIFI_Init(void)
       configASSERT(0);
   }
   WiFi.setHostname("Autopeepal_OBD2");
+  preferences.end();
 }
 
 void WIFI_SupportTask(void *pvParameters)
@@ -251,36 +249,42 @@ void WIFI_SupportTask(void *pvParameters)
 
   while (1)
   {
-    preferences.begin("config", false);
     wifiStatus = WiFi.status();
 
-    if ((wifiStatus != WL_CONNECTED))
+    switch (wifiStatus)
     {
+    case WL_CONNECTED:
+      if ((!FLAG.WIFI))
+        Serial.printf("INFO: ST MODE CONNECTED <%s>\r\n", WiFi.localIP().toString().c_str());
+      FLAG.WIFI = true;
+      break;
+
+    default:
       FLAG.WIFI = false;
       userModeTimeout++;
+
       if (userModeTimeout == 6)
       {
+        userModeTimeout = 0;
         usermode = false;
-        wifiStatus = WL_IDLE_STATUS;
       }
 
       WIFI_Client.stop();
       if (usermode)
       {
+        preferences.begin("config", false);
         WiFi.begin((char *)preferences.getString("stSSID[1]").c_str(), (char *)preferences.getString("stPASS[1]").c_str());
+        preferences.end();
       }
       else
       {
+        preferences.begin("config", false);
         WiFi.begin((char *)preferences.getString("stSSID[0]").c_str(), (char *)preferences.getString("stPASS[0]").c_str());
+        preferences.end();
       }
-    }
-    else if (!FLAG.WIFI)
-    {
-      FLAG.WIFI = true;
-      Serial.printf("INFO: ST MODE CONNECTED <%s>\r\n", WiFi.localIP().toString().c_str());
+      break;
     }
 
-    preferences.end();
     vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }
@@ -297,7 +301,7 @@ bool WIFI_Set_STA_SSID(uint8_t idx, char *p_str)
     preferences.begin("config", false);
     preferences.putString((const char *)key, p_str);
     preferences.end();
-    Serial.printf("Updated SSID at <%d>\r\n", idx);
+    // Serial.printf("Updated SSID at <%d>\r\n", idx);
     ret = true;
   }
   return ret;
@@ -316,7 +320,7 @@ bool WIFI_Set_STA_Pass(uint8_t idx, char *p_str)
     preferences.putString((const char *)key, p_str);
     preferences.end();
     ret = true;
-    Serial.printf("Updated Password at <%d>\r\n", idx);
+    // Serial.printf("Updated Password at <%d>\r\n", idx);
   }
 
   return ret;

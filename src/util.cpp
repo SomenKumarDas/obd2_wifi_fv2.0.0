@@ -137,7 +137,7 @@ void SW_OPERATION_TASK(void *pv)
   }
 }
 
-void SecWifiLedTask(void *pv)
+void SecWifiLedTask(void *pv) 
 {
   while (1)
   {
@@ -148,8 +148,6 @@ void SecWifiLedTask(void *pv)
     vTaskDelay(499 / portTICK_PERIOD_MS);
     digitalWrite(LED_3, LOW);
     digitalWrite(LED_2, LOW);
-    if (FLAG.SECURITY && FLAG.WIFI)
-      break;
     vTaskDelay(499 / portTICK_PERIOD_MS);
   }
   secWifiLedTask_b = true;
