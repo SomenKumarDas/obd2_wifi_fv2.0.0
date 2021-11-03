@@ -145,27 +145,17 @@ void RCV_ISO(void)
 {
   if (xQueueReceive(CAN_cfg.rx_queue, &rx_frame, pdMS_TO_TICKS(5)) == pdTRUE)
   {
-    StopTimer(CAN_RqRspTmr);
-    FLAG.CAN_COM = true;
     if (PROTOCOL == APP_CAN_PROTOCOL_ISO15765)
     {
       switch (rx_frame.data.u8[0] >> 4)
       {
-      case 0:
-        HandleRX_SF();
-        break;
+      case 0: HandleRX_SF(); break;
 
-      case 1:
-        HandleRX_FF();
-        break;
+      case 1: HandleRX_FF(); break;
 
-      case 2:
-        HandleRX_CF();
-        break;
+      case 2: HandleRX_CF(); break;
 
-      case 3:
-        HandleRX_FC();
-        break;
+      case 3: HandleRX_FC(); break;
       }
     }
     else if (PROTOCOL == APP_CAN_PROTOCOL_OE_IVN)
@@ -186,11 +176,14 @@ void RCV_ISO(void)
     {
       Handle_SDO_MOSI();
     }
+  
+    FLAG.CAN_COM = true;
   }
 }
 
 static void HandleRX_SF()
 {
+  StopTimer(CAN_RqRspTmr);
   CanIsoRcv.RxID = rx_frame.MsgID;
   CanIsoRcv.exID = (bool)rx_frame.FIR.B.FF;
   CanIsoRcv.RxMsgLen = (rx_frame.data.u8[0] & 0x0F);
@@ -200,6 +193,7 @@ static void HandleRX_SF()
 
 static void HandleRX_FF()
 {
+  StopTimer(CAN_RqRspTmr);
   frame.RxFramelen = ((uint16_t)(0x0F & rx_frame.data.u8[0]) << 8) | (uint16_t)rx_frame.data.u8[1];
   memcpy(frame.RxFrameBuf, &rx_frame.data.u8[2], rx_frame.FIR.B.DLC - 2);
   frame.RxFrameIdx = rx_frame.FIR.B.DLC - 2;
@@ -248,7 +242,6 @@ static void HandleRX_CF()
 static void HandleRX_FC()
 {
   /* Get the timing and block params*/
-
   if ((rx_frame.data.u8[0] & 0x0F) == 1)
     return;
   else if ((rx_frame.data.u8[0] & 0x0F) == 2)
