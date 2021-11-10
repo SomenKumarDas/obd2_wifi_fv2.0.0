@@ -410,7 +410,7 @@ static void canInit(void)
     ESP_LOGE("CAN", "CAN Failed to create queue message for either Rx / Tx / err");
     vTaskDelete(NULL);
   }
-  CAN_Drv_Init(&CAN_cfg);
+  // CAN_Drv_Init(&CAN_cfg);
 
   if (xTaskCreate(_TX_task, "_TX_task", 1024 * 5, NULL, tskIDLE_PRIORITY + 7, NULL) != pdTRUE)
     vTaskDelete(NULL);

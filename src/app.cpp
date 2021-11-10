@@ -312,7 +312,7 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
         respNo = APP_RESP_NACK_13;
         break;
       }
-
+      
       if (p_buff[1] < 6)
       {
         offset = 0;
@@ -341,7 +341,7 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
 
       if ((p_buff[1] - offset) < 2)
       {
-        CAN_SetBaud(CAN_SPEED_125KBPS);
+        CAN_SetBaud(CAN_SPEED_250KBPS);
       }
       else if ((p_buff[1] - offset) < 4)
       {
