@@ -44,9 +44,9 @@ void CAN_TASK(void *args)
   frame.RxFrameBuf = new (uint8_t[4096]);
   frame.TxFrameBuf = new (uint8_t[4096]);
 
-  SET_TxHeader(0x7e0, 0);
-  CAN_SetBaud(CAN_SPEED_500KBPS);
-  CAN_ConfigFilterterMask(0x710, 0);
+  // SET_TxHeader(0x7e0, 0);
+  // CAN_SetBaud(CAN_SPEED_500KBPS);
+  // CAN_ConfigFilterterMask(0x710, 0);
 
   // CAN_EnableInterframeDelay(6000);
 
