@@ -113,8 +113,7 @@ void GPIO_CONFIG(void)
 
   pf.begin("config", false);
   cmd = pf.getULong("val");
-  if (cmd < 5000)
-    pf.putULong("val", ++cmd);
+  pf.putLong("val",  (cmd < 5000)?cmd++:cmd);
   pf.end();
 }
 

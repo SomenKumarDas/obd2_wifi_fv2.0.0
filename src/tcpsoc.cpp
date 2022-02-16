@@ -12,7 +12,7 @@ uint8_t WIFI_RxBuff[4200];
 uint8_t WIFI_TxBuff[4200];
 uint16_t WIFI_TxLen;
 uint8_t WIFI_SeqNo;
-bool usermode = false;
+bool userssid = false;
 long req_time = 0;
 char WIFI_AP_SSID[50] = "";
 char WIFI_AP_Password[50] = "password1";
@@ -199,11 +199,11 @@ void WIFI_Init(void)
       ESP_LOGI("TCP", "CONNECTING USER SSID <%s>\r\n", preferences.getString("stSSID[1]").c_str());
       Serial.printf("INFO: CONNECTING USER SSID <%s>\r\n", preferences.getString("stSSID[1]").c_str());
       staConnected = true;
-      usermode = true;
+      userssid = true;
     }
   }
 
-  if (!usermode)
+  if (!userssid)
   {
     if ((preferences.getString("stSSID[0]") != "") && (strnlen(preferences.getString("stSSID[0]").c_str(), 50) < 50))
     {
@@ -262,25 +262,26 @@ void WIFI_SupportTask(void *pvParameters)
     default:
       FLAG.WIFI = false;
       userModeTimeout++;
-
-      if (userModeTimeout == 6)
-      {
-        userModeTimeout = 0;
-        usermode = false;
-      }
-
       WIFI_Client.stop();
-      if (usermode)
+      if (userModeTimeout == 2)
       {
-        preferences.begin("config", false);
-        WiFi.begin((char *)preferences.getString("stSSID[1]").c_str(), (char *)preferences.getString("stPASS[1]").c_str());
-        preferences.end();
-      }
-      else
-      {
-        preferences.begin("config", false);
-        WiFi.begin((char *)preferences.getString("stSSID[0]").c_str(), (char *)preferences.getString("stPASS[0]").c_str());
-        preferences.end();
+        if (userssid)
+        {
+          preferences.begin("config", false);
+          WiFi.begin((char *)preferences.getString("stSSID[1]").c_str(), (char *)preferences.getString("stPASS[1]").c_str());
+          preferences.end();
+        }
+        else
+        {
+          
+          WiFi.begin((char *)preferences.getString("stSSID[0]").c_str(), (char *)preferences.getString("stPASS[0]").c_str());
+          // if (WiFi.softAP(WIFI_AP_SSID, WIFI_AP_Password) == true)
+          // {
+          //   ESP_LOGI("WIFI", "AP IP address: %s\r\n", WiFi.softAPIP().toString().c_str());
+          //   vTaskDelete(NULL);
+          // }
+        }
+        userModeTimeout = 0;
       }
       break;
     }
