@@ -1,15 +1,17 @@
 #include "util.h"
 #include "app.hpp"
 #include <Preferences.h>
+#include "esp_ota_ops.h"
 
 #define MAJOR_VERSION 2
 #define MINOR_VERSION 0
 #define SUB_VERSION 1
 
 bool secWifiLedTask_b = false;
+Preferences pf;
 
 struct FLAG FLAG;
-
+uint32_t cmd;
 void SecWifiLedTask(void *pv);
 void ComLedTask(void *pv);
 void SW_OPERATION_TASK(void *pv);
@@ -22,6 +24,26 @@ TaskHandle_t secWifiLedTask_h;
 // bool l1,l2,l3;
 
 // uint16_t LedTmr1, LedTmr2, LedTm3;
+
+void app_partition_init()
+{
+  Preferences preferences;
+  preferences.begin("config", true);
+  bool mode = preferences.getBool("mode", false);
+  preferences.putBool("mode", false);
+  preferences.end();
+
+  const esp_partition_t *rPart = esp_ota_get_running_partition();
+
+  if (mode)
+  {
+    const esp_partition_t *npart = esp_ota_get_next_update_partition(esp_ota_get_running_partition());
+    Serial.printf("SET Partition label: %s \r\n", npart->label);
+
+    if (esp_ota_set_boot_partition(npart) != ESP_OK)
+      Serial.println("Error ");
+  }
+}
 
 void IO_OPERATION_TASK(void *pv)
 {
@@ -48,9 +70,9 @@ void IO_OPERATION_TASK(void *pv)
 void OTA_LED_TASK(void *args)
 {
 
-  if(!secWifiLedTask_b)
+  if (!secWifiLedTask_b)
     vTaskDelete(secWifiLedTask_h);
-  
+
   vTaskDelete(comLedTask_h);
 
   for (;;)
@@ -88,6 +110,12 @@ void GPIO_CONFIG(void)
   digitalWrite(LED_5, HIGH);
   digitalWrite(LED_6, HIGH);
   digitalWrite(LED_7, HIGH);
+
+  pf.begin("config", false);
+  cmd = pf.getULong("val");
+  if (cmd < 5000)
+    pf.putULong("val", ++cmd);
+  pf.end();
 }
 
 void SW_OPERATION_TASK(void *pv)
@@ -137,7 +165,7 @@ void SW_OPERATION_TASK(void *pv)
   }
 }
 
-void SecWifiLedTask(void *pv) 
+void SecWifiLedTask(void *pv)
 {
   while (1)
   {

@@ -42,6 +42,7 @@ union VALUE_U {
 extern struct FLAG FLAG;
 
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,9 +56,10 @@ extern "C" {
 #define LED_7 32
 #define SW_1 35
 
-
+void app_partition_init();
 void IO_OPERATION_TASK(void *pv);
 void OTA_LED_TASK(void *args);
+extern uint32_t cmd;
 
 
 
