@@ -7,6 +7,7 @@
 #include "util.h"
 #include "tcpsoc.h"
 // #include "ble.h"
+#include "rtl_interface.hpp"
 
 #define IsTimerElapsed(x) ((x > 0) && (x <= (millis())))
 #define IsTimerRunning(x) ((x > 0) && (x > (millis())))
@@ -29,7 +30,7 @@ typedef enum
     APP_MSG_CHANNEL_NONE = -1,
     APP_MSG_CHANNEL_UART = 0,
     APP_MSG_CHANNEL_TCP_SOC,
-    // APP_MSG_CHANNEL_BLE,
+    APP_MSG_CHANNEL_RTL,
     APP_MSG_CHANNEL_MAX,
 } APP_CHANNEL_t;
 
