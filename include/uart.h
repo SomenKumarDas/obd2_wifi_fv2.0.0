@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#define DATA_COM Serial
+
 void UART_Task(void *pv);
 void UART_Write(uint8_t *payLoad, uint16_t len);
 
