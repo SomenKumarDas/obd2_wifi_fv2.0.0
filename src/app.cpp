@@ -3,10 +3,11 @@
 
 uint8_t APP_SecuityCode[] = {0x47, 0x56, 0x8A, 0xFE, 0x56, 0x21, 0x4E, 0x23, 0x80, 0x00};
 
-const uint8_t var[3] = { 3, 1, 2};
-
+const uint8_t var[3] = { 3, 1, 3};
+VALUE_U value;
 uint8_t COM_CHANNEL;
 uint8_t PROTOCOL = 1;
+uint8_t ProtocolNumber = 0;
 uint8_t APP_BuffLockedBy = 0;
 uint16_t APP_CAN_TxDataLen;
 uint16_t APP_BuffRxIndex;
@@ -16,6 +17,8 @@ bool APP_CAN_TransmitTstrMsg = false;
 uint32_t APP_TstrPrTmr;
 uint32_t CAN_RqRspTmr;
 uint32_t CAN_RqRspMaxTime = 500;
+uint32_t CAN_RxId = 0;
+uint8_t P1MIN = 0;
 
 String OTA_URL;
 
@@ -312,7 +315,7 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
         respNo = APP_RESP_NACK_13;
         break;
       }
-      
+      ProtocolNumber = p_buff[1];
       if (p_buff[1] < 6)
       {
         offset = 0;
@@ -358,6 +361,11 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
       }
     }
     break;
+    case APP_REQ_CMD_GET_PROTOCOL:
+    {
+      respBuff[respLen++] = ProtocolNumber;
+    }
+    break;
     case APP_REQ_CMD_SET_TX_CAN_ID:
     {
       if (len == 3)
@@ -381,13 +389,13 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
     {
       if (len == 3)
       {
-        uint32_t rxID = ((uint32_t)p_buff[1] << 8) | (uint32_t)p_buff[2];
-        CAN_ConfigFilterterMask(rxID, (bool)false);
+        CAN_RxId = ((uint32_t)p_buff[1] << 8) | (uint32_t)p_buff[2];
+        CAN_ConfigFilterterMask(CAN_RxId, (bool)false);
       }
       else if (len == 5)
       {
-        uint32_t rxID = ((uint32_t)p_buff[1] << 24) | ((uint32_t)p_buff[2] << 16) | ((uint32_t)p_buff[3] << 8) | (uint32_t)p_buff[4];
-        CAN_ConfigFilterterMask(rxID, (bool)true);
+        CAN_RxId = ((uint32_t)p_buff[1] << 24) | ((uint32_t)p_buff[2] << 16) | ((uint32_t)p_buff[3] << 8) | (uint32_t)p_buff[4];
+        CAN_ConfigFilterterMask(CAN_RxId, (bool)true);
       }
       else
       {
@@ -395,6 +403,15 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
         respNo = APP_RESP_NACK_13;
         break;
       }
+    }
+    break;
+    case APP_REQ_CMD_GET_RX_CAN_ID:
+    {
+      value.U32 = CAN_RxId;
+      respBuff[respLen++] = value.BYTE.B_3;
+      respBuff[respLen++] = value.BYTE.B_2;
+      respBuff[respLen++] = value.BYTE.B_1;
+      respBuff[respLen++] = value.BYTE.B_0;
     }
     break;
     case APP_REQ_CMD_SETP1MIN:
@@ -405,7 +422,7 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
         respNo = APP_RESP_NACK_13;
         break;
       }
-
+      P1MIN = p_buff[1];
       if (p_buff[1] == 0)
       {
         CAN_EnableInterframeDelay(0);
@@ -420,6 +437,10 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
       }
     }
     break;
+    case APP_REQ_CMD_GETP1MIN:
+    {
+      respBuff[respLen++] = P1MIN;
+    }
     case APP_REQ_CMD_SETP2MAX:
     {
       if (len != 3)
