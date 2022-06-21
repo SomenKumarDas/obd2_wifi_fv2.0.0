@@ -44,7 +44,8 @@ void (*cb_APP_Send[])(uint8_t *, uint16_t) =
     {
         UART_Write,
         WIFI_TCP_Soc_Write,
-        rtl_interface_write
+        rtl_interface_write,
+        eth_Write
 };
 
 void APP_ProcessData(uint8_t *p_buff, uint16_t len, APP_CHANNEL_t channel)
