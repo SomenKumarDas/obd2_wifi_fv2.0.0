@@ -136,7 +136,7 @@ void Enc28J60Network::initSPI() {
     #if defined(__STM32F3__) || (!defined(ARDUINO_ARCH_STM32) && defined(STM32F3)) || defined(__STM32F4__)
       SPI.begin(SPI_9MHZ, MSBFIRST, 0);
     #else
-      SPI.begin();
+      SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, ENC28J60_CONTROL_CS);
     #endif
   #endif
   #if defined(ARDUINO_ARCH_AVR)

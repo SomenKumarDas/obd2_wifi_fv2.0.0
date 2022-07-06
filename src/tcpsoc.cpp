@@ -5,7 +5,7 @@
 #include "esp_wifi.h"
 
 WiFiClient WIFI_Client;
-WiFiServer SocketServer(6888);
+WiFiServer SocketServer(6999);
 SemaphoreHandle_t WIFI_SemTCP_SocComplete;
 
 uint8_t WIFI_RxBuff[4200];

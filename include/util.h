@@ -56,6 +56,25 @@ extern "C" {
 #define LED_7 32
 #define SW_1 35
 
+#define IF(x, y) \
+  if (x)         \
+  {              \
+    y            \
+  }
+#define _ST_(std_exp) std_exp;
+#define DebugCom Serial
+
+inline void DEBUG(const char* tag, uint8_t *buff, int idx)
+{
+  DebugCom.printf("[%s] [%04u] [", tag, idx);
+  for (int i = 0; i < ((idx > 10) ? 10 : idx); i++)
+  {
+    DebugCom.printf("%02x", buff[i]);
+  }
+  IF(idx > 10, DebugCom.printf("...");)
+  DebugCom.println("]");
+}
+
 void app_partition_init();
 void IO_OPERATION_TASK(void *pv);
 void OTA_LED_TASK(void *args);

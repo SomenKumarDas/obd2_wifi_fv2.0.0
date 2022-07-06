@@ -1,70 +1,71 @@
 #include "eth.hpp"
 
-uint8_t mac[6] = {0xFF, 0x01, 0xFF, 0x03, 0x04, 0x05};
-uint8_t myIP[4] = {192, 168, 0, 120};
-uint8_t Eth_Buff[4100];
+static EthernetClient client;
+static EthernetServer server = EthernetServer(6888);
+static uint8_t ip[] = {192, 168, 1, 10};
+static uint8_t mac[6] = {0x9C, 0x9C, 0x1F, 0x27, 0xDE, 0xE0};
+static uint8_t *rxData = NULL;
+static int32_t rxLen = 0, rxIdx = 0, rxFrameLen = 0;
+static uint32_t ListnerTmr;
 
-EthernetClient client;
-EthernetServer server = EthernetServer(2020);
+static inline void listnerRefresh()
+{
+    rxIdx = 0;
+    rxFrameLen = 0;
+    StopTimer(ListnerTmr);
+}
 
 void eth_Task(void *pv)
 {
-
-    Ethernet.begin(mac);
+    _ST_(rxData = (uint8_t *)new (uint8_t[4100]))
+    Ethernet.begin(mac, ip);
     vTaskDelay(pdMS_TO_TICKS(1000));
-    Serial.println(Ethernet.localIP());
+    Serial.printf("[ETH IP: %s]\r\n", Ethernet.localIP().toString().c_str());
     server.begin();
 
-    uint16_t idx, x;
-    uint16_t len;
-    uint16_t frameLen;
-    uint32_t frameTimeoutTmr;
-    uint32_t frameTimeout = 5000;
     while (1)
     {
         client = server.available();
-        idx = 0;
-        len = 0;
-
         if (client.connected())
         {
-            Serial.println("New Client Connected");
+            Serial.printf("[ETH] [CONNECTED]\r\n");
             while (client.connected())
             {
-                if (client.available() >= 2)
+                if (client.available())
                 {
-                    idx = client.read(Eth_Buff, 2);
-                    frameLen = ((uint16_t)(Eth_Buff[0] & 0x0F) << 8) | (uint16_t)Eth_Buff[1];
-
-                    StartTimer(frameTimeoutTmr, frameTimeout);
-                    while ((len < frameLen) && !IsTimerElapsed(frameTimeoutTmr))
+                    if (rxIdx == 0 && client.available() >= 2)
                     {
-                        len = client.available();
-                        len = (len > 0) ? len : 0;
-                        vTaskDelay(pdMS_TO_TICKS(10));
+                        rxIdx = client.read(&rxData[rxIdx], 2);
+                        rxFrameLen = (((uint16_t)(rxData[0] & 0x0F) << 8) | (uint16_t)rxData[1]) + 2;
+                        StartTimer(ListnerTmr, 5000);
                     }
-
-                    idx += client.read(&Eth_Buff[idx], len);
-                    APP_ProcessData(Eth_Buff, idx, APP_MSG_CHANNEL_ETH);
-
-                    while (x = client.available())
+                    else if ((rxFrameLen - rxIdx) > 0u)
                     {
-                        while (x--)
-                            client.read();
+                        rxIdx += client.read(&rxData[rxIdx], (rxFrameLen - rxIdx));
+                        IF((rxFrameLen == rxIdx),
+                           _ST_(DEBUG("APP", rxData, rxFrameLen))
+                               _ST_(APP_ProcessData(rxData, rxFrameLen, APP_MSG_CHANNEL_ETH))
+                                   _ST_(listnerRefresh()));
                     }
                 }
-                vTaskDelay(5 / portTICK_PERIOD_MS);
+                else
+                {
+                    IF(IsTimerElapsed(ListnerTmr), _ST_(listnerRefresh()))
+                    vTaskDelay(pdMS_TO_TICKS(10));
+                }
             }
-            Serial.println("Client DisConnected");
+            Serial.printf("[ETH] [DISCONNECTED]\r\n");
         }
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
+    vTaskDelete(NULL);
 }
 
 void eth_Write(uint8_t *payLoad, uint16_t len)
 {
     if (client.connected())
     {
+        _ST_(DEBUG("DGL", payLoad, len))
         client.write(payLoad, len);
     }
 }
