@@ -17,15 +17,15 @@ void rtl_interface_Task(void *pvParameters)
             {
                 idx = RTL_DATA_CH.read(DataBuff, 2);
                 frameLen = ((uint16_t)(DataBuff[0] & 0x0F) << 8) | (uint16_t)DataBuff[1];
-                log_printf("frameLen: %u\r\n", frameLen);
+                log_printf("[APP] [New frameLen: %u]\r\n", frameLen);
             }
             else if (idx)
             {
                 idx += RTL_DATA_CH.read(&DataBuff[idx], (frameLen));
-                log_printf("idx: %u\r\n", idx);
+                log_printf("[APP] [Cur idx: %u]\r\n", idx);
                 if (idx >= (frameLen + 2))
                 {
-                    log_printf("rcvd:");
+                    log_printf("[APP] [FR rcvd:]");
                     for (int i = 0; i < ((idx > 10) ? 10 : (idx)); i++)
                     {
                         Serial.printf("%02x", DataBuff[i]);

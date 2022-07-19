@@ -3,7 +3,7 @@
 
 uint8_t APP_SecuityCode[] = {0x47, 0x56, 0x8A, 0xFE, 0x56, 0x21, 0x4E, 0x23, 0x80, 0x00};
 
-const uint8_t var[3] = { 3, 1, 3};
+const uint8_t var[3] = { 4, 0, 0};
 VALUE_U value;
 uint8_t COM_CHANNEL;
 uint8_t PROTOCOL = 1;
