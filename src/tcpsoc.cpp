@@ -5,7 +5,7 @@
 #include "esp_wifi.h"
 
 WiFiClient WIFI_Client;
-WiFiServer SocketServer(6999);
+WiFiServer SocketServer(6888);
 SemaphoreHandle_t WIFI_SemTCP_SocComplete;
 
 uint8_t WIFI_RxBuff[4200];
@@ -50,42 +50,21 @@ void WIFI_Task(void *pvParameters)
         idx = 0;
         len = 0;
 
-        if (WIFI_Client.available() >= 3)
+        if (WIFI_Client.available() >= 2)
         {
-          idx = WIFI_Client.read(WIFI_RxBuff, 3);
-          frameLen = ((uint16_t)WIFI_RxBuff[1] << 8) | (uint16_t)WIFI_RxBuff[2];
+          idx = WIFI_Client.read(WIFI_RxBuff, 2);
+          frameLen = ((uint16_t)(WIFI_RxBuff[0] & 0x0F) << 8) | (uint16_t)WIFI_RxBuff[1];
 
           StartTimer(frameTimeoutTmr, frameTimeout);
-          while ((len < frameLen))
+          while ((len < frameLen) && !IsTimerElapsed(frameTimeoutTmr))
           {
             len = WIFI_Client.available();
             len = (len > 0) ? len : 0;
-            if (IsTimerElapsed(frameTimeoutTmr))
-            {
-              // Serial.print("<FRAME TIME OUT> ");
-              // Serial.printf("Read: [%u] Exp: [%u]\r\n", len, frameLen);
-              break;
-            }
             vTaskDelay(pdMS_TO_TICKS(10));
           }
 
-          // if(len != frameLen)
-          // {
-          //   Serial.println("INVALID FRAME LEN");
-          //   Serial.printf("Read: [%u] Exp: [%u]\r\n", len, frameLen);
-          // }
-
           idx += WIFI_Client.read(&WIFI_RxBuff[idx], len);
-
-          // Serial.printf("APP -> [%u] ", (idx - 13));
-          // for(int i = 0; i < ((idx - 13 > 10) ? 10 : (idx - 13)); i++)
-          // {
-          //   Serial.printf("%02x", WIFI_RxBuff[11 + i]);
-          // }
-          // Serial.println("");
-
-          APP_ProcessData(&WIFI_RxBuff[11], (idx - 13), APP_MSG_CHANNEL_TCP_SOC);
-
+          APP_ProcessData(WIFI_RxBuff, idx, APP_MSG_CHANNEL_TCP_SOC);
           WIFI_Client.flush();
         }
 
@@ -101,12 +80,6 @@ void WIFI_Task(void *pvParameters)
 
 void WIFI_TCP_Soc_Write(uint8_t *payLoad, uint16_t len)
 {
-#define byte(x, y) ((uint8_t)(x >> (y * 8)))
-
-  uint16_t crc16;
-  uint32_t idx;
-  uint32_t tick;
-
   if (WIFI_SemTCP_SocComplete == NULL)
   {
     return;
@@ -114,50 +87,19 @@ void WIFI_TCP_Soc_Write(uint8_t *payLoad, uint16_t len)
 
   xSemaphoreTake(WIFI_SemTCP_SocComplete, portMAX_DELAY);
 
-  // if (WIFI_TxLen == 0)
+  if (WIFI_Client.connected() == true)
   {
-    idx = 0;
-    if ((payLoad[0] & 0xF0) == 0x20)
+    if (WIFI_Client.write(payLoad, len) > 0)
     {
-      WIFI_TxBuff[idx++] = WIFI_SeqNo;
+      // Serial.printf("DGL <- [%u] ", len);
+      // for (int i = 0; i < ((len > 10) ? 10 : len); i++)
+      //   Serial.printf("%02x", payLoad[i]);
+      // Serial.println("\n");
     }
-    else
-    {
-      WIFI_TxBuff[idx++] = 0xFF;
-    }
-
-    WIFI_TxBuff[idx++] = byte(len, 1);
-    WIFI_TxBuff[idx++] = byte(len, 0);
-    tick = xTaskGetTickCount();
-    WIFI_TxBuff[idx++] = byte(tick, 3);
-    WIFI_TxBuff[idx++] = byte(tick, 2);
-    WIFI_TxBuff[idx++] = byte(tick, 1);
-    WIFI_TxBuff[idx++] = byte(tick, 0);
-    memset(&WIFI_TxBuff[idx], 0, 4);
-    idx = idx + 4;
-    memcpy(&WIFI_TxBuff[idx], payLoad, len);
-    idx = idx + len;
-    crc16 = UTIL_CRC16_CCITT(0xFFFF, WIFI_TxBuff, len + 11);
-    WIFI_TxBuff[idx++] = byte(crc16, 1);
-    WIFI_TxBuff[idx++] = byte(crc16, 0);
-    WIFI_TxLen = idx;
-
-    if (WIFI_Client.connected() == true)
-    {
-      if (WIFI_Client.write(WIFI_TxBuff, WIFI_TxLen) > 0)
-      {
-        // Serial.printf("DGL <- [%u] ", len);
-        // for (int i = 0; i < ((len > 10) ? 10 : len); i++)
-        //   Serial.printf("%02x", payLoad[i]);
-        // Serial.println("\n");
-      }
-    }
-    else
-    {
-      Serial.println("INFO: TCP Socket Client disconnected during send");
-    }
-
-    WIFI_TxLen = 0;
+  }
+  else
+  {
+    Serial.println("INFO: TCP Socket Client disconnected during send");
   }
 
   xSemaphoreGive(WIFI_SemTCP_SocComplete);
@@ -273,7 +215,7 @@ void WIFI_SupportTask(void *pvParameters)
         }
         else
         {
-          
+
           WiFi.begin((char *)preferences.getString("stSSID[0]").c_str(), (char *)preferences.getString("stPASS[0]").c_str());
           // if (WiFi.softAP(WIFI_AP_SSID, WIFI_AP_Password) == true)
           // {
