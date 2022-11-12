@@ -50,11 +50,14 @@ extern "C" {
 #define LED_1 18
 #define LED_2 19
 #define LED_3 27
-#define LED_4 26
-#define LED_5 25
+#define LED_4 0
+#define LED_5 0
 #define LED_6 33
 #define LED_7 32
 #define SW_1 35
+#define DAC1 25
+#define DAC2 26
+#define ADC1 34
 
 #define IF(x, y) \
   if (x)         \

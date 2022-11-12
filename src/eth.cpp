@@ -55,12 +55,12 @@ void eth_Task(void *pv)
                 else
                 {
                     IF(IsTimerElapsed(ListnerTmr), _ST_(Serial.printf("[W] [ETH] [TM OUT]\r\n")) _ST_(listnerRefresh()))
-                    vTaskDelay(pdMS_TO_TICKS(50));
+                    vTaskDelay(pdMS_TO_TICKS(10));
                 }
             }
             Serial.printf("[ETH] [DISCONNECTED]\r\n");
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 
 _EXIT_:

@@ -26,7 +26,7 @@ void UART_Task(void *pvParameters)
             if (rxIdx == 0 && Serial.available() >= 2)
             {
                 rxIdx = Serial.read(&rxData[rxIdx], 2);
-                rxFrameLen = (((uint16_t)(rxData[0] & 0x0F) << 8) | (uint16_t)rxData[1]) + 2;
+                rxFrameLen = (((uint16_t)(rxData[0] & 0x0F) << 8) | ((uint16_t)rxData[1])) + 2;
                 StartTimer(ListnerTmr, 5000);
             }
             else if ((rxFrameLen - rxIdx) > 0u)

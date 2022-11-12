@@ -9,6 +9,7 @@
 // #include "ble.h"
 #include "rtl_interface.hpp"
 #include "eth.hpp"
+#include "kline.hpp"
 
 #define IsTimerElapsed(x) ((x > 0) && (x <= (millis())))
 #define IsTimerRunning(x) ((x > 0) && (x > (millis())))
@@ -42,7 +43,10 @@ typedef enum
     APP_CAN_PROTOCOL_ISO15765,
     APP_CAN_PROTOCOL_NORMAL,
     APP_CAN_PROTOCOL_OE_IVN,
-    APP_CAN_PROTOCOL_OPEN
+    APP_CAN_PROTOCOL_OPEN,
+    APP_KLIN_ISO_9141_2,
+    APP_KLIN_ISO14230_4KWP_5BAUDINIT,
+    APP_KLIN_ISO14230_4KWP_FASTINIT,
 } CAN_PROTOCOL_t;
 
 typedef enum
@@ -57,6 +61,7 @@ typedef enum
     // APP_REQ_CMD_SFCBLKL                 = 0x08,
     // APP_REQ_CMD_GFCBLKL                 = 0x09,
     // APP_REQ_CMD_SFCST                   = 0x0A,
+    
     // APP_REQ_CMD_GFCST                   = 0x0B,
     APP_REQ_CMD_SETP1MIN                = 0x0C,
     APP_REQ_CMD_GETP1MIN                = 0x0D,
@@ -135,6 +140,7 @@ extern "C"
 
     void SendEcuResponseTimeoutErr(void *pv);
     void SEND_CAN_RESPONSE(void);
+    void SEND_KLIN_RESPONSE(void);
 
 #ifdef __cplusplus
 }

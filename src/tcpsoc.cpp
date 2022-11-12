@@ -116,7 +116,7 @@ void WIFI_Init(void)
 
   if ((WIFI_SemTCP_SocComplete == NULL))
   {
-    ESP_LOGE("Failed to create Soc Tx complete semaphore");
+    log_printf("Failed to create Soc Tx complete semaphore");
   }
   else
   {

@@ -3,7 +3,7 @@
 
 uint8_t APP_SecuityCode[] = {0x47, 0x56, 0x8A, 0xFE, 0x56, 0x21, 0x4E, 0x23, 0x80, 0x00};
 
-const uint8_t var[3] = { 4, 0, 0};
+const uint8_t var[3] = { 5, 0, 0};
 VALUE_U value;
 uint8_t COM_CHANNEL;
 uint8_t PROTOCOL = 1;
@@ -12,6 +12,7 @@ uint8_t APP_BuffLockedBy = 0;
 uint16_t APP_CAN_TxDataLen;
 uint16_t APP_BuffRxIndex;
 uint8_t APP_CAN_TxBuff[4096];
+uint8_t APP_KLIN_TxBuff[305];
 
 bool APP_CAN_TransmitTstrMsg = false;
 uint32_t APP_TstrPrTmr;
@@ -19,6 +20,9 @@ uint32_t CAN_RqRspTmr;
 uint32_t CAN_RqRspMaxTime = 500;
 uint32_t CAN_RxId = 0;
 uint8_t P1MIN = 0;
+
+uint32_t KLIN_RqRspTmr;
+uint32_t KLIN_RqRspMaxTime = 500;
 
 String OTA_URL;
 
@@ -197,6 +201,38 @@ void SEND_CAN_RESPONSE(void)
   }
 }
 
+void SEND_KLIN_RESPONSE(void)
+{
+
+  if (IsTimerElapsed(KLIN_RqRspTmr))
+  {
+    StopTimer(KLIN_RqRspTmr);
+    uint8_t respBuffer[10];
+    uint16_t respLen = 0;
+    respBuffer[respLen++] = 0x40;
+    respBuffer[respLen++] = 0x02;
+    respBuffer[respLen++] = 0xff;
+    respBuffer[respLen++] = 0xff;
+    cb_APP_Send[COM_CHANNEL](respBuffer, respLen);
+  }
+
+  if(RespMsg.NewMsg)
+  {
+    uint16_t idx = 0;
+    uint16_t crc16 = 0;
+
+    RespMsg.NewMsg = false;
+    APP_KLIN_TxBuff[idx++] = 0x40 | (((RespMsg.len + 2) >> 8) & 0x0f);
+    APP_KLIN_TxBuff[idx++] = (uint8_t) RespMsg.len;
+    memcpy(&APP_KLIN_TxBuff[idx], RespMsg.data, RespMsg.len);
+    idx += RespMsg.len;
+    crc16 = UTIL_CRC16_CCITT(0xFFFF, RespMsg.data, RespMsg.len);
+    APP_KLIN_TxBuff[idx++] = crc16 >> 8;
+    APP_KLIN_TxBuff[idx++] = crc16;
+    cb_APP_Send[COM_CHANNEL](APP_KLIN_TxBuff, idx);
+  }
+}
+
 static void APP_Frame0(uint8_t *p_buff, uint16_t len, uint8_t channel)
 {
   uint8_t respType;
@@ -336,6 +372,12 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
       {
         offset = 0x12;
         PROTOCOL = APP_CAN_PROTOCOL_OPEN;
+        KLIN_FastInit();
+      }
+      else if (p_buff[1] == 0x19)
+      {
+        offset = 0xff;
+        PROTOCOL = APP_KLIN_ISO14230_4KWP_FASTINIT;
       }
       else
       {
@@ -369,7 +411,11 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
     break;
     case APP_REQ_CMD_SET_TX_CAN_ID:
     {
-      if (len == 3)
+      if (len == 2)
+      {
+        KLIN_SetSrc(p_buff[1]);
+      }
+      else if (len == 3)
       {
         uint32_t txID = ((uint32_t)p_buff[1] << 8) | (uint32_t)p_buff[2];
         SET_TxHeader(txID, false);
@@ -388,7 +434,11 @@ static void APP_COMMAND(uint8_t *p_buff, uint16_t len, uint8_t channel)
     break;
     case APP_REQ_CMD_SET_RX_CAN_ID:
     {
-      if (len == 3)
+      if (len == 2)
+      {
+        KLIN_SetTgt(p_buff[1]);
+      }
+      else if (len == 3)
       {
         CAN_RxId = ((uint32_t)p_buff[1] << 8) | (uint32_t)p_buff[2];
         CAN_ConfigFilterterMask(CAN_RxId, (bool)false);
@@ -678,21 +728,29 @@ static void APP_Frame3(uint8_t *p_buff, uint16_t len, uint8_t channel)
 
 static void ISO_CAN_FRAME(uint8_t *p_buff, uint16_t len, uint8_t channel)
 {
-  if (len <= 4096)
+  APP_SendRespToFrame(APP_RESP_ACK, APP_RESP_ACK, NULL, 0, channel);
+
+  if(PROTOCOL == APP_KLIN_ISO14230_4KWP_FASTINIT)
   {
-    if (APP_CAN_TransmitTstrMsg)
+    KLIN_Send(p_buff, len);
+  }
+  else
+  {
+    if (len <= 4096)
     {
-      if (!IsTimerEnabled(APP_TstrPrTmr))
+      if (APP_CAN_TransmitTstrMsg)
       {
-        StartTimer(APP_TstrPrTmr, 2000);
+        if (!IsTimerEnabled(APP_TstrPrTmr))
+        {
+          StartTimer(APP_TstrPrTmr, 2000);
+        }
+        else
+        {
+          ResetTimer(APP_TstrPrTmr, 2000);
+        }
       }
-      else
-      {
-        ResetTimer(APP_TstrPrTmr, 2000);
-      }
+      SEND_ISO(p_buff, len);
     }
-    SEND_ISO(p_buff, len);
-    APP_SendRespToFrame(APP_RESP_ACK, APP_RESP_ACK, NULL, 0, channel);
   }
 }
 
